@@ -4,20 +4,17 @@ use vst3_com::sys::GUID;
 use vst3_sys::{
     base::{
         kInvalidArgument, kResultFalse, kResultOk, tresult, FactoryFlags, IPluginFactory,
-        IPluginFactory2, IPluginFactory3, PClassInfo, PClassInfo2, PClassInfoW, PFactoryInfo,
+        IPluginFactory2, PClassInfo, PClassInfo2, PFactoryInfo,
     },
     VST3,
 };
 
 use crate::pi::parameters;
 use crate::vst3::{
-    controller::PiSynthController,
-    plugin::PiSynthPlugin,
-    plugin_data,
-    utils::{strcpy, wstrcpy},
+    controller::PiSynthController, plugin::PiSynthPlugin, plugin_data, utils::strcpy,
 };
 
-#[VST3(implements(IPluginFactory3))]
+#[VST3(implements(IPluginFactory, IPluginFactory2))]
 pub struct PiSynthPluginFactory {}
 
 impl PiSynthPluginFactory {
@@ -116,6 +113,8 @@ impl IPluginFactory2 for PiSynthPluginFactory {
                 let info = &mut *info;
 
                 info.class_flags = 1;
+                info.cardinality = 0x7FFF_FFFF;
+                info.cid = PiSynthPlugin::CID;
                 strcpy(plugin_data::VST3_CLASS_NAME, info.name.as_mut_ptr());
                 strcpy(plugin_data::VST3_VENDOR, info.vendor.as_mut_ptr());
                 strcpy(plugin_data::VST3_VERSION, info.version.as_mut_ptr());
@@ -131,6 +130,8 @@ impl IPluginFactory2 for PiSynthPluginFactory {
                 let info = &mut *info;
 
                 info.class_flags = 0;
+                info.cardinality = 0x7FFF_FFFF;
+                info.cid = PiSynthController::CID;
                 strcpy(
                     plugin_data::VST3_CONTROLLER_CLASS_NAME,
                     info.name.as_mut_ptr(),
@@ -150,53 +151,5 @@ impl IPluginFactory2 for PiSynthPluginFactory {
             }
             _ => return kInvalidArgument,
         }
-    }
-}
-
-impl IPluginFactory3 for PiSynthPluginFactory {
-    unsafe fn get_class_info_unicode(&self, idx: i32, info: *mut PClassInfoW) -> tresult {
-        match idx {
-            0 => {
-                let info = &mut *info;
-
-                info.class_flags = 1;
-                wstrcpy(plugin_data::VST3_CLASS_NAME, info.name.as_mut_ptr());
-                wstrcpy(plugin_data::VST3_VENDOR, info.vendor.as_mut_ptr());
-                wstrcpy(plugin_data::VST3_VERSION, info.version.as_mut_ptr());
-                strcpy(plugin_data::VST3_CLASS_CATEGORY, info.category.as_mut_ptr());
-                strcpy(
-                    plugin_data::VST3_CLASS_SUBCATEGORIES,
-                    info.subcategories.as_mut_ptr(),
-                );
-
-                kResultOk
-            }
-            1 => {
-                let info = &mut *info;
-
-                info.class_flags = 0;
-                wstrcpy(
-                    plugin_data::VST3_CONTROLLER_CLASS_NAME,
-                    info.name.as_mut_ptr(),
-                );
-                wstrcpy(plugin_data::VST3_VENDOR, info.vendor.as_mut_ptr());
-                wstrcpy(plugin_data::VST3_VERSION, info.version.as_mut_ptr());
-                strcpy(
-                    plugin_data::VST3_CONTROLLER_CLASS_CATEGORY,
-                    info.category.as_mut_ptr(),
-                );
-                strcpy(
-                    plugin_data::VST3_CONTROLLER_CLASS_SUBCATEGORIES,
-                    info.subcategories.as_mut_ptr(),
-                );
-
-                kResultOk
-            }
-            _ => kInvalidArgument,
-        }
-    }
-
-    unsafe fn set_host_context(&self, _context: *mut c_void) -> tresult {
-        kResultOk
     }
 }
